@@ -1,0 +1,15 @@
+{
+  "name": "smartmove-people-counter",
+  "version": "1.0.0",
+  "description": "microservice for data parsing",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Teemu Jönkkäri <teemu.jonkkari@tuni.fi>",
+  "license": "MIT",
+  "dependencies": {
+    "fastify": "^4.6.0",
+    "node-fetch": "2"
+  }
+}
