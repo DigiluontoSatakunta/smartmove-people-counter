@@ -1,92 +1,27 @@
+/* Copyright © IMBuildings
+ * Authors: IMBuildings & rconen
+ * Original repository: https://github.com/IMBUILDINGS/PayloadParser
+ *
+ * Description: Example library for parsing payload for IMBUILDINGS LoRaWAN and NB-IoT Products
+ *
+ * This file is stripped down and modified version of the original one to support only the selected device.
+ */
+
 const payloadTypes = {
-  COMFORT_SENSOR: 0x01,
   PEOPLE_COUNTER: 0x02,
-  BUTTONS: 0x03,
-  PULSE_COUNTER: 0x04,
-  TRACKER: 0x05,
-  DOWNLINK: 0xf1,
 };
 
 const errorCode = {
   UNKNOWN_PAYLOAD: 1,
-  EXPECTED_DOWNLINK_RESPONSE: 2,
   UNKNOWN_PAYLOAD_TYPE: 3,
   UNKNOWN_PAYLOAD_VARIANT: 4,
 };
 
 function decodeUplink(input) {
   let parsedData = {};
-  if (!containsIMBHeader(input.bytes)) {
-    //When payload doesn't contain IMBuildings header
-    //Assumes that payload is transmitted on specific recommended fport
-    //e.g. payload type 2 variant 6 on FPort 26, type 2 variant 7 on FPort 27 and so on...
-    switch (input.fPort) {
-      case 10:
-        //Assumes data is response from downlink
-        if (input.bytes[0] != payloadTypes.DOWNLINK || input.bytes[1] != 0x01)
-          return getError(errorCode.EXPECTED_DOWNLINK_RESPONSE);
-        parsedData.payload_type = payloadTypes.DOWNLINK;
-        parsedData.payload_variant = 0x01;
-        break;
-      case 11:
-        if (input.bytes.length != 7) return getError(errorCode.UNKNOWN_PAYLOAD);
-        parsedData.payload_type = payloadTypes.COMFORT_SENSOR;
-        parsedData.payload_variant = 1;
-        input.payloadHeader = false;
-        break;
-      case 13:
-        if (input.bytes.length != 7) return getError(errorCode.UNKNOWN_PAYLOAD);
-
-        parsedData.payload_type = payloadTypes.COMFORT_SENSOR;
-        parsedData.payload_variant = 3;
-        break;
-      case 24:
-        if (input.bytes.length != 12)
-          return getError(errorCode.UNKNOWN_PAYLOAD);
-        parsedData.payload_type = payloadTypes.PEOPLE_COUNTER;
-        parsedData.payload_variant = 4;
-        input.payloadHeader = false;
-        break;
-      case 26:
-        if (input.bytes.length != 13)
-          return getError(errorCode.UNKNOWN_PAYLOAD);
-
-        parsedData.payload_type = payloadTypes.PEOPLE_COUNTER;
-        parsedData.payload_variant = 6;
-        break;
-      case 27:
-        if (input.bytes.length != 5) return getError(errorCode.UNKNOWN_PAYLOAD);
-
-        parsedData.payload_type = payloadTypes.PEOPLE_COUNTER;
-        parsedData.payload_variant = 7;
-        break;
-      case 28:
-        if (input.bytes.length != 4) return getError(errorCode.UNKNOWN_PAYLOAD);
-
-        parsedData.payload_type = payloadTypes.PEOPLE_COUNTER;
-        parsedData.payload_variant = 8;
-        break;
-      case 33:
-        if (input.bytes.length != 1) return getError(errorCode.UNKNOWN_PAYLOAD);
-        parsedData.payload_type = payloadTypes.BUTTONS;
-        parsedData.payload_variant = 3;
-        input.payloadHeader = false;
-        break;
-      case 34:
-        if (input.bytes.length != 10)
-          return getError(errorCode.UNKNOWN_PAYLOAD);
-        parsedData.payload_type = payloadTypes.BUTTONS;
-        parsedData.payload_variant = 4;
-        input.payloadHeader = false;
-        break;
-      default:
-        return {errors: []};
-    }
-  } else {
-    parsedData.payload_type = input.bytes[0];
-    parsedData.payload_variant = input.bytes[1];
-    parsedData.device_id = toHEXString(input.bytes, 2, 8);
-  }
+  parsedData.payload_type = input.bytes[0];
+  parsedData.payload_variant = input.bytes[1];
+  parsedData.device_id = toHEXString(input.bytes, 2, 8);
 
   switch (parsedData.payload_type) {
     case payloadTypes.PEOPLE_COUNTER:
@@ -97,35 +32,6 @@ function decodeUplink(input) {
   }
 
   return {data: parsedData};
-}
-
-function containsIMBHeader(payload) {
-  if (
-    payload[0] == payloadTypes.PEOPLE_COUNTER &&
-    payload[1] == 0x04 &&
-    payload.length == 24
-  )
-    return true;
-  if (
-    payload[0] == payloadTypes.PEOPLE_COUNTER &&
-    payload[1] == 0x06 &&
-    payload.length == 23
-  )
-    return true;
-  if (
-    payload[0] == payloadTypes.PEOPLE_COUNTER &&
-    payload[1] == 0x07 &&
-    payload.length == 15
-  )
-    return true;
-  if (
-    payload[0] == payloadTypes.PEOPLE_COUNTER &&
-    payload[1] == 0x08 &&
-    payload.length == 14
-  )
-    return true;
-
-  return false;
 }
 
 function parsePeopleCounter(input, parsedData) {
@@ -196,12 +102,6 @@ function getError(code) {
       return {
         errors: [
           "Unable to detect correct payload. Please check your device configuration",
-        ],
-      };
-    case errorCode.EXPECTED_DOWNLINK_RESPONSE:
-      return {
-        errors: [
-          "Expected downlink reponse data on FPort 10. Please transmit downlinks on FPort 10",
         ],
       };
     case errorCode.UNKNOWN_PAYLOAD_TYPE:
