@@ -4,15 +4,21 @@ const parser = require("./libs/ttn-v3/imbuildings-decoder");
 const host = process.env.HOST || "0.0.0.0";
 const port = process.env.PORT || 8080;
 
+const TELEGRAF_API =
+  process.env.TELEGRAF_API || "https://influx.digiluonto.fi/telegraf";
+
 const AUTH_TOKEN = process.env.AUTH_TOKEN || "SmartMove";
 
 const logger = process.env.NODE_ENV === "production" ? false : true;
 const fastify = require("fastify")({logger});
 
+// Support only the content type for application/json
+fastify.removeContentTypeParser(["text/plain"]);
+
 fastify.addHook("preHandler", async (request, reply) => {
   if (request.headers["x-user"] !== AUTH_TOKEN)
     reply.code(401).send("401 Unauthorized");
-  done();
+  return;
 });
 
 fastify.get("/", async (_, reply) => {
@@ -27,10 +33,19 @@ fastify.post("/", async (request, reply) => {
   );
 
   if (payload) {
-    const parsedData = parser.decode({bytes: Buffer.from(payload, "hex")});
+    const data = parser.decode({bytes: Buffer.from(payload, "hex")});
 
-    if (parsedData) {
-      fastify.log.info(parsedData);
+    if (data) {
+      fastify.log.info(data);
+      const response = await fetch(TELEGRAF_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Location": "kippo",
+        },
+        body: JSON.stringify(data),
+      });
+      fastify.log.info(response);
     } else {
       fastify.log.error("Payload structure unknown");
     }
