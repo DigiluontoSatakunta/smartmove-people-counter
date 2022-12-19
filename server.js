@@ -6,8 +6,13 @@ const port = process.env.PORT || 8080;
 
 const TELEGRAF_API =
   process.env.TELEGRAF_API || "https://influx.digiluonto.fi/telegraf";
+const TELEGRAF_BASIC_USER = process.env.TELEGRAF_BASIC_USER || "telegraf";
+const TELEGRAF_BASIC_PASS = process.env.TELEGRAF_BASIC_PASS || "telegraf";
+const DIGITA_AUTH_TOKEN = process.env.DIGITA_AUTH_TOKEN || "SmartMove";
 
-const AUTH_TOKEN = process.env.AUTH_TOKEN || "SmartMove";
+const credentials = Buffer.from(
+  TELEGRAF_BASIC_USER + ":" + TELEGRAF_BASIC_PASS
+).toString("base64");
 
 const logger = process.env.NODE_ENV === "production" ? false : true;
 const fastify = require("fastify")({logger});
@@ -16,7 +21,7 @@ const fastify = require("fastify")({logger});
 fastify.removeContentTypeParser(["text/plain"]);
 
 fastify.addHook("preHandler", async (request, reply) => {
-  if (request.headers["x-user"] !== AUTH_TOKEN)
+  if (request.headers["x-user"] !== DIGITA_AUTH_TOKEN)
     reply.code(401).send("401 Unauthorized");
   return;
 });
@@ -40,6 +45,7 @@ fastify.post("/", async (request, reply) => {
       const response = await fetch(TELEGRAF_API, {
         method: "POST",
         headers: {
+          Authorization: `Basic ${credentials}`,
           "Content-Type": "application/json",
           "X-Location": "kippo",
         },
